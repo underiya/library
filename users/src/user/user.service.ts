@@ -1,9 +1,11 @@
 import {
-  ConflictException,
   Injectable,
   UnauthorizedException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -15,17 +17,19 @@ export class UserService {
     private readonly userRepository: Repository<UserEntity>,
     private readonly jwtService: JwtService,
   ) {}
+
   async createUser(data: Partial<UserEntity>) {
     const existingUser = await this.userRepository.findOne({
       where: { email: data.email },
     });
 
     if (existingUser) {
-      throw new ConflictException('Email already registered');
+      throw new HttpException('Email already registered', HttpStatus.CONFLICT);
+      return 'error';
     }
 
     const user = this.userRepository.create(data);
-    return this.userRepository.save(user);
+    return await this.userRepository.save(user);
   }
 
   async login(email: string, password: string) {
@@ -35,9 +39,8 @@ export class UserService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = { id: user.id, email: user.email };
     const token = this.jwtService.sign(payload);
-
     return {
       access_token: token,
       user: {

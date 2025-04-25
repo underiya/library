@@ -1,14 +1,17 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserEntity } from 'src/entities/user.entity';
+import { EventPattern, Payload } from '@nestjs/microservices';
 
-@Controller('user')
+@Controller()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('signup')
-  async signup(@Body() data: Partial<UserEntity>) {
-    return await this.userService.createUser(data);
+  @EventPattern('user.created')
+  async signup(@Payload() data: Partial<UserEntity>) {
+    const res = await this.userService.createUser(data);
+    console.log('response', res);
+    return { message: 'User created!' };
   }
 
   @Post('login')
